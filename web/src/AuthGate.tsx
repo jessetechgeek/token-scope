@@ -33,8 +33,8 @@ export function AuthGate() {
     try { await fetch('/api/logout', { method: 'POST' }) } finally { setState('login') }
   }
 
-  if (state === 'checking') return <div className="login-page"><div className="loading-state" role="status"><span className="spinner" />Loading…</div></div>
-  if (state === 'unavailable') return <div className="login-page"><div className="login-card"><ErrorNotice message="The API is unavailable. Check that the server is running." retry={() => { setState('checking'); void check() }} /></div></div>
+  if (state === 'checking') return <div className="login"><div className="loading" role="status"><span className="spinner" />Loading…</div></div>
+  if (state === 'unavailable') return <div className="login"><div className="login-form"><ErrorNotice message="The API is unavailable. Check that the server is running." retry={() => { setState('checking'); void check() }} /></div></div>
   if (state === 'login') return <Login onSuccess={() => void check()} />
   return <App onSignOut={authRequired ? signOut : undefined} />
 }

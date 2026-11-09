@@ -21,7 +21,7 @@ export interface ApiRequestRow {
   isSynthetic: boolean
 }
 
-export const ACTIVE_SOURCES = ['live', 'claude-local', 'history', 'demo'] as const
+export const ACTIVE_SOURCES = ['live'] as const
 export type UsageSource = (typeof ACTIVE_SOURCES)[number]
 
 export function isActiveSource(source: string): source is UsageSource {

@@ -29,37 +29,14 @@ const status: FastifyPluginAsync = async (fastify) => {
       database,
       ingestion: { queued: 0, accepted: total, persisted: total, duplicates: 0, rejected: 0 },
       sources,
-      aggregates: [{ name: 'spend_1h', materializedOnly: true }],
-      chunks: { total: 0, rowstore: 0, columnstore: 0 },
-      jobs: [],
-      history: { maxBytes: 0, priceSource: 'not-supported', previewRequired: true },
       limitations: [
         'Costs are API-equivalent estimates or reported values, not subscription bills.',
-        'Rollups are plain Postgres tables updated at ingest time; there is no TimescaleDB.',
+        'Rollups are plain Postgres tables updated at ingest time.',
         'Events are written to the database in the request; nothing is queued in memory.',
         'No retention policy is installed; data is not automatically deleted. Day boundaries use UTC.',
-        'Local history collection, manual history import, demo data and benchmarks are not ported yet.',
       ],
     }
   })
-
-  fastify.get('/local-usage/status', async () => ({
-    enabled: false,
-    scanning: false,
-    initialScanComplete: true,
-    pendingRefresh: false,
-    pollSeconds: 0,
-    lastScanAt: null,
-    lastPersistedAt: null,
-    filesDiscovered: 0,
-    filesProcessed: 0,
-    failedFiles: 0,
-    inserted: 0,
-    updated: 0,
-    skippedRecords: 0,
-    lastError: null,
-    clients: [],
-  }))
 }
 
 export default status

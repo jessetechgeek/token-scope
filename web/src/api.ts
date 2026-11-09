@@ -1,18 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 
-export type Source = 'live' | 'claude-local' | 'history' | 'demo'
-export type LocalSource = 'claude-local'
-export const SOURCE_ORDER: Source[] = ['live', 'claude-local', 'history', 'demo']
-export const isLocal = (source: Source): source is LocalSource => source === 'claude-local'
-export const usageLabel = (source: Source) => isLocal(source) ? 'usage records' : 'requests'
+export type Source = 'live'
+export const SOURCE_ORDER: Source[] = ['live']
+export const usageLabel = (_source: Source) => 'requests'
 export type ChartMetric = 'cost' | 'requests'
 export type Range = '1h' | '24h' | '7d' | '30d' | '90d'
 export const RANGE_SECONDS: Record<Range, number> = { '1h': 3600, '24h': 86400, '7d': 604800, '30d': 2592000, '90d': 7776000 }
 export const SOURCES: Record<Source, { label: string; short: string; description: string }> = {
-  'claude-local': { label: 'Claude history', short: 'Claude Code', description: 'Usage read from local Claude Code files: existing history and subsequent file updates. Kept separate from telemetry and manual imports, which may describe the same activity.' },
   live: { label: 'Live telemetry', short: 'Live', description: 'Claude Code request events received through OTLP. Enable telemetry in a new session to collect new requests; earlier sessions are not backfilled here.' },
-  history: { label: 'Manual import', short: 'Imported', description: 'Usage manually imported from Claude Code JSONL files. Kept separate from telemetry and automatic history collection, which may overlap.' },
-  demo: { label: 'Demo team', short: 'Demo', description: 'Synthetic requests for query benchmarks and repeatable demonstrations at a larger scale. These are not your usage.' },
 }
 export type Totals = { costUsdMicros: number; requests: number; inputTokens: number; outputTokens: number; cacheReadTokens: number; cacheCreationTokens: number }
 export type Summary = { servedFrom: string; queryMs: number; totals: Totals; pricedRequests: number; unpricedRequests: number; syntheticRequests: number; windowStart: string; windowEnd: string }
@@ -21,29 +16,11 @@ export type Timeseries = { servedFrom: string; bucketSeconds: number; queryMs: n
 export type Slice = { label: string; costUsdMicros: number; requests: number; pricedRequests?: number; unpricedRequests?: number }
 export type Live = { minutes: Point[]; today: Slice; lastEventAt: string | null }
 export type Session = { sessionId: string; developer: string; startedAt: string; endedAt: string; requests: number; costUsdMicros: number; pricedRequests?: number; unpricedRequests?: number }
-export type Bench = { rawMs: number; rollupMs: number; rawRows: number; rollupRows: number; equivalent: boolean; matchingRows: number; samples: number; statistic: string; windowStart: string; windowEnd: string }
-export type ImportPreview = {
-  previewId: string; expiresAt: string; records: number; requests: number; duplicates: number; skipped: number; unknownModels: string[];
-  estimatedCostUsdMicros: number; pricedRequests: number; unpricedRequests: number; priceSource: string;
-  issues: string[]; inserted?: number | null; alreadyImported?: number | null; synthetic?: boolean;
-}
 export type Status = {
-  database: { connected: boolean; postgresVersion?: string; timescaleVersion?: string }
-  ingestion: { queued: number; accepted: number; persisted: number; duplicates: number; rejected: number; lastPersistedAt?: string; lastError?: string }
-  sources: { source: Source; requests: number; pricedRequests: number; unpricedRequests: number; syntheticRequests: number; lastEventAt: string | null; agentRequests: number; skillRequests: number; mcpRequests: number }[]
-  aggregates: { name: string; materializedOnly: boolean }[]
-  chunks: { total: number; rowstore: number; columnstore: number }
-  jobs: { procName: string; scheduleInterval: string; lastRunStatus: string }[]
-  history: { maxBytes: number; priceSource: string; previewRequired: boolean }
-  limitations: string[]
+  database: { connected: boolean; postgresVersion?: string }
+  sources: { source: Source; requests: number; pricedRequests: number; unpricedRequests: number; lastEventAt: string | null }[]
 }
 export type Resource<T> = { data: T | undefined; error: string | null; loading: boolean; updatedAt: Date | null; retry: () => void }
-export type LocalUsageStatus = {
-  enabled: boolean; scanning: boolean; initialScanComplete: boolean; pendingRefresh: boolean; pollSeconds: number;
-  lastScanAt: string | null; lastPersistedAt: string | null; filesDiscovered: number; filesProcessed: number;
-  failedFiles: number; inserted: number; updated: number; skippedRecords: number; lastError: string | null;
-  clients: { source: LocalSource; available: boolean; files: number }[];
-}
 
 export const UNAUTHORIZED_EVENT = 'tokenscope:unauthorized'
 
@@ -64,7 +41,14 @@ export async function getJson<T>(url: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>
 }
 
-export function usePolling<T>(url: string, intervalMs = 5000, refreshKey = 0, enabled = true): Resource<T> {
+export const POLL_MS = 30_000
+const IDLE_MS = 10 * 60_000
+let lastActivity = Date.now()
+if (typeof window !== 'undefined') {
+  for (const name of ['pointerdown', 'keydown', 'focus']) window.addEventListener(name, () => { lastActivity = Date.now() }, { passive: true })
+}
+
+export function usePolling<T>(url: string, intervalMs = POLL_MS, refreshKey = 0, enabled = true): Resource<T> {
   const [state, setState] = useState<Omit<Resource<T>, 'retry'>>({ data: undefined, error: null, loading: true, updatedAt: null })
   const [attempt, setAttempt] = useState(0)
   const retry = useCallback(() => setAttempt(n => n + 1), [])
@@ -75,7 +59,7 @@ export function usePolling<T>(url: string, intervalMs = 5000, refreshKey = 0, en
     // Never present the previous source's numbers under a new source.
     setState({ data: undefined, error: null, loading: true, updatedAt: null })
     const load = async () => {
-      if (busy || document.hidden) return
+      if (busy || document.hidden || Date.now() - lastActivity > IDLE_MS) return
       busy = true
       try {
         const data = await getJson<T>(url, { signal: controller.signal })
@@ -86,7 +70,7 @@ export function usePolling<T>(url: string, intervalMs = 5000, refreshKey = 0, en
     }
     void load()
     const id = window.setInterval(load, intervalMs)
-    const onVisibility = () => { if (!document.hidden) void load() }
+    const onVisibility = () => { if (!document.hidden) { lastActivity = Date.now(); void load() } }
     document.addEventListener('visibilitychange', onVisibility)
     return () => { controller.abort(); window.clearInterval(id); document.removeEventListener('visibilitychange', onVisibility) }
   }, [url, intervalMs, refreshKey, attempt, enabled])
