@@ -1,5 +1,5 @@
 import fp from 'fastify-plugin'
-import postgres, { type Sql } from 'postgres'
+import type { Sql } from 'postgres'
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -11,6 +11,7 @@ export default fp(async (fastify) => {
   const url = process.env.DATABASE_URL
   if (!url) throw new Error('DATABASE_URL is required.')
 
+  const { default: postgres } = await import('postgres')
   const sql = postgres(url, {
     max: 3,
     idle_timeout: 20,

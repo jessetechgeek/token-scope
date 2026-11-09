@@ -45,8 +45,14 @@ export type LocalUsageStatus = {
   clients: { source: LocalSource; available: boolean; files: number }[];
 }
 
+export const UNAUTHORIZED_EVENT = 'tokenscope:unauthorized'
+
 export async function getJson<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, init)
+  if (response.status === 401) {
+    window.dispatchEvent(new Event(UNAUTHORIZED_EVENT))
+    throw new Error('Your session has expired. Sign in again.')
+  }
   if (!response.ok) {
     // Do not display server exceptions: they can contain connection strings or private identifiers.
     throw new Error(response.status === 413 ? 'This file is too large. Choose a JSONL file under 10 MiB.' :

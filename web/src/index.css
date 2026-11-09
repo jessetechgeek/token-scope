@@ -461,3 +461,28 @@ summary { cursor: pointer; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
 }
+
+/* Sign-in */
+.login-page { min-height: 100vh; min-height: 100dvh; display: grid; place-items: center; padding: 24px 16px; background: var(--bg); }
+.login-card { width: 100%; max-width: 380px; padding: 32px 28px 24px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 1px 2px rgb(0 0 0 / .05), 0 18px 36px -18px rgb(0 0 0 / .22); }
+.login-brand { justify-content: center; padding: 0; margin-bottom: 26px; }
+.login-card h1 { font-size: 20px; font-weight: 650; letter-spacing: -.3px; text-align: center; }
+.login-lede { margin: 8px 0 26px; color: var(--muted); font-size: 13px; line-height: 1.6; text-align: center; }
+.login-hidden { position: absolute; width: 1px; height: 1px; padding: 0; border: 0; opacity: 0; pointer-events: none; }
+.login-field { display: grid; gap: 7px; }
+.login-field label { font-size: 12px; font-weight: 550; }
+.login-input-wrap { position: relative; }
+.login-input { width: 100%; padding: 11px 62px 11px 12px; border-radius: 8px; background: var(--bg); font: inherit; font-size: 16px; line-height: 1.4; }
+.login-input[aria-invalid="true"] { border-color: var(--danger); }
+.login-reveal { position: absolute; top: 50%; right: 6px; transform: translateY(-50%); padding: 6px 8px; border: 0; border-radius: 5px; background: none; color: var(--muted); font-size: 12px; font-weight: 550; }
+.login-reveal:hover { color: var(--text); background: var(--panel-soft); }
+.login-card .notice { margin-top: 14px; }
+.login-submit { width: 100%; margin-top: 18px; padding: 11px 14px; font-size: 13px; }
+.login-submit .spinner { border-color: rgb(0 0 0 / .18); border-top-color: var(--accent-text); }
+.login-foot { margin-top: 20px; color: var(--muted); font-size: 11px; text-align: center; }
+.signout-button { width: 100%; margin-top: 12px; padding: 7px 10px; border: 1px solid var(--line); border-radius: 6px; background: none; color: var(--muted); font-size: 12px; text-align: left; }
+.signout-button:hover { color: var(--text); border-color: var(--line-strong); background: var(--panel-soft); }
+@media (max-width: 700px) {
+  .signout-button { width: auto; margin: 0 0 0 7px; padding: 5px 9px; font-size: 11px; }
+  .sidebar-bottom { display: flex; align-items: center; }
+}

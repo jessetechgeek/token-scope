@@ -1,0 +1,12 @@
+{
+  "buildCommand": "npm run build:ts && npm --prefix web ci && npm --prefix web run build",
+  "outputDirectory": "web/dist",
+  "functions": {
+    "api/index.js": { "includeFiles": "dist/**" }
+  },
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api" },
+    { "source": "/v1/(.*)", "destination": "/api" },
+    { "source": "/health", "destination": "/api" }
+  ]
+}

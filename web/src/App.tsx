@@ -21,7 +21,7 @@ const initialSource = (): Source | null => {
   } catch { return null }
 }
 
-export default function App() {
+export default function App({ onSignOut }: { onSignOut?: () => void }) {
   const [tab, setTab] = useState<Tab>(initialTab)
   const [selectedSource, setSelectedSource] = useState<Source | null>(initialSource)
   const [range, setRange] = useState<Range>('30d')
@@ -55,7 +55,7 @@ export default function App() {
     <aside className="sidebar">
       <button className="brand" onClick={() => navigate('dashboard')} aria-label="TokenScope dashboard"><span className="brand-mark"><span /><span /><span /></span><span>Token<span className="brand-light">Scope</span></span></button>
       <nav aria-label="Main navigation">{TABS.map(item => <button key={item.key} onClick={() => navigate(item.key)} aria-label={item.title} title={item.title} aria-current={tab === item.key ? 'page' : undefined} className={`nav-item ${tab === item.key ? 'selected' : ''}`}><Icon name={item.icon} size={19} /><span>{item.title}</span>{tab === item.key && <span className="nav-indicator" />}</button>)}</nav>
-      <div className="sidebar-bottom"><AppearanceControl /></div>
+      <div className="sidebar-bottom"><AppearanceControl />{onSignOut && <button className="signout-button" onClick={onSignOut}>Sign out</button>}</div>
     </aside>
     <div className="main-shell">
       <header className="topbar"><div className="breadcrumbs">{current.title}</div><div className="topbar-actions"><span className={`connection ${status.data?.database.connected && !status.error ? '' : 'offline'}`} role="status"><span className="status-dot" />{status.loading ? 'Connecting' : status.error ? 'API unavailable' : status.data?.database.connected ? 'Database connected' : 'Database unavailable'}</span><button className={`privacy-toggle ${privacy ? 'enabled' : ''}`} aria-pressed={privacy} onClick={() => setPrivacy(value => !value)} title={privacy ? 'Identifiers are replaced by stable aliases' : 'Original identifiers are visible'}><Icon name="shield" size={16} /><span>Hide identifiers {privacy ? 'on' : 'off'}</span></button></div></header>

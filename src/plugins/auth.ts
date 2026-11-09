@@ -1,26 +1,16 @@
-import { createHash, timingSafeEqual } from 'node:crypto'
 import fp from 'fastify-plugin'
+import { hasValidSession, hasValidToken } from '../lib/session'
 
-const digest = (value: string) => createHash('sha256').update(value).digest()
-
-function presentedToken(header: string | undefined): string | null {
-  if (!header) return null
-  if (header.startsWith('Bearer ')) return header.slice(7)
-  if (header.startsWith('Basic ')) {
-    const decoded = Buffer.from(header.slice(6), 'base64').toString('utf8')
-    const separator = decoded.indexOf(':')
-    return separator === -1 ? decoded : decoded.slice(separator + 1)
-  }
-  return null
-}
+const PUBLIC_PATHS = new Set(['/api/login', '/api/logout', '/api/session'])
 
 export default fp(async (fastify) => {
-  const expected = process.env.TOKENSCOPE_API_TOKEN
-
   fastify.addHook('onRequest', async (request, reply) => {
-    const path = request.url
-    if (!path.startsWith('/api') && !path.startsWith('/v1')) return
+    const path = request.url.split('?')[0] ?? ''
+    const isApi = path.startsWith('/api')
+    const isIngest = path.startsWith('/v1')
+    if ((!isApi && !isIngest) || PUBLIC_PATHS.has(path)) return
 
+    const expected = process.env.TOKENSCOPE_API_TOKEN
     if (!expected) {
       if (process.env.NODE_ENV === 'production') {
         return reply.code(503).send({ error: 'TOKENSCOPE_API_TOKEN is not configured.' })
@@ -28,12 +18,10 @@ export default fp(async (fastify) => {
       return
     }
 
-    const token = presentedToken(request.headers.authorization)
-    if (token === null || !timingSafeEqual(digest(token), digest(expected))) {
-      return reply
-        .code(401)
-        .header('WWW-Authenticate', 'Basic realm="TokenScope"')
-        .send({ error: 'Unauthorized.' })
+    const bearer = hasValidToken(request.headers.authorization, expected)
+    const session = isApi && hasValidSession(request.headers.cookie, expected)
+    if (!bearer && !session) {
+      return reply.code(401).send({ error: 'Unauthorized.' })
     }
   })
 }, { name: 'auth' })
