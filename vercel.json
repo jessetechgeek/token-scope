@@ -1,6 +1,7 @@
 {
   "buildCommand": "npm run build:ts && npm --prefix web ci && npm --prefix web run build",
   "outputDirectory": "web/dist",
+  "regions": ["sin1"],
   "functions": {
     "api/index.js": { "includeFiles": "dist/**" }
   },
