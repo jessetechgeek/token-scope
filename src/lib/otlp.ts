@@ -95,6 +95,7 @@ export function mapApiRequests(root: Json, defaultDeveloper: string): ApiRequest
   const rows: ApiRequestRow[] = []
   for (const resourceLogs of arrayOf(root, 'resourceLogs')) {
     const resource = readAttributes(objectOf(resourceLogs, 'resource'))
+    const surfaceDeveloper = text(resource, 'service.name') === 'claude-code-desktop' ? `${defaultDeveloper}-desktop` : defaultDeveloper
     for (const scopeLogs of arrayOf(resourceLogs, 'scopeLogs')) {
       for (const record of arrayOf(scopeLogs, 'logRecords')) {
         const attributes = readAttributes(record)
@@ -111,7 +112,7 @@ export function mapApiRequests(root: Json, defaultDeveloper: string): ApiRequest
         rows.push({
           time: readTime(record, attributes),
           source: 'live',
-          developer: text(attributes, 'developer') ?? text(resource, 'developer') ?? defaultDeveloper,
+          developer: text(attributes, 'developer') ?? text(resource, 'developer') ?? surfaceDeveloper,
           sessionId: text(attributes, 'session.id') ?? 'unknown',
           model: text(attributes, 'model') ?? 'unknown',
           querySource: text(attributes, 'query_source'),

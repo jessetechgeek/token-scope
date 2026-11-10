@@ -81,7 +81,7 @@ svg { flex-shrink: 0; }
 .segmented { display: inline-flex; padding: 3px; gap: 2px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); }
 .segmented button { position: relative; min-width: 40px; height: 30px; padding: 0 10px; border: 0; border-radius: 6px; background: none; color: var(--ink-2); font-size: 13px; font-weight: 500; transition-property: background-color, color; transition-duration: 150ms; transition-timing-function: var(--ease); }
 .segmented button::after { content: ""; position: absolute; inset: -6px -1px; }
-.segmented button[aria-pressed="true"] { background: var(--ink); color: var(--on-ink); }
+.segmented button[aria-pressed="true"], .segmented button[aria-selected="true"] { background: var(--ink); color: var(--on-ink); }
 @media (hover: hover) and (pointer: fine) { .segmented button[aria-pressed="false"]:hover { color: var(--ink); background: var(--bg); } }
 .icon-button { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border: 1px solid var(--line); border-radius: 8px; background: none; color: var(--ink-2); transition-property: color, border-color, scale; transition-duration: 150ms; transition-timing-function: var(--ease); }
 .icon-button:active { scale: 0.96; }
@@ -204,6 +204,9 @@ td .sub { display: block; color: var(--ink-3); font-size: 12px; }
 .step h2 { font-size: 16px; }
 .step-body { display: grid; gap: 12px; }
 .step-body p { color: var(--ink-2); max-width: 62ch; }
+.step-body .segmented { justify-self: start; }
+.surface { display: grid; gap: 12px; }
+.surface p { color: var(--ink-2); max-width: 62ch; }
 .copy { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); overflow: hidden; }
 .copy header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 8px 8px 14px; border-bottom: 1px solid var(--line); font-size: 13px; color: var(--ink-2); }
 .copy pre { margin: 0; padding: 14px; overflow-x: auto; font-size: 12.5px; line-height: 1.6; }

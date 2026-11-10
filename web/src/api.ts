@@ -15,7 +15,7 @@ export type Point = { bucket: string; model: string; costUsdMicros: number; requ
 export type Timeseries = { servedFrom: string; bucketSeconds: number; queryMs: number; points: Point[] }
 export type Slice = { label: string; costUsdMicros: number; requests: number; pricedRequests?: number; unpricedRequests?: number }
 export type Live = { minutes: Point[]; today: Slice; lastEventAt: string | null }
-export type Session = { sessionId: string; developer: string; startedAt: string; endedAt: string; requests: number; costUsdMicros: number; pricedRequests?: number; unpricedRequests?: number }
+export type Session = { sessionId?: string; sessions?: number; developer: string; startedAt: string; endedAt: string; requests: number; costUsdMicros: number; pricedRequests?: number; unpricedRequests?: number }
 export type Status = {
   database: { connected: boolean; postgresVersion?: string }
   sources: { source: Source; requests: number; pricedRequests: number; unpricedRequests: number; lastEventAt: string | null }[]

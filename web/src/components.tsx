@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState, type ReactNode } from 'react'
+import { lazy, Suspense, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { Select } from './Select'
 import {
   FAMILY_LABELS, MODEL_FAMILIES, POLL_MS, RANGE_SECONDS, ago, alias, compact, familyOf, number, pivotByFamily, usd, usePolling,
@@ -113,15 +113,23 @@ function Breakdown({ range, refreshKey, privacy, allUnpriced }: { range: Range; 
 }
 
 function Sessions({ range, refreshKey, privacy, allUnpriced }: { range: Range; refreshKey: number; privacy: boolean; allUnpriced: boolean }) {
-  const sessions = usePolling<Session[]>(`/api/sessions?source=live&range=${range}&metric=${allUnpriced ? 'requests' : 'cost'}`, POLL_MS, refreshKey)
+  const [group, setGroup] = useState<'session' | 'developer'>('session')
+  const sessions = usePolling<Session[]>(`/api/sessions?source=live&range=${range}&metric=${allUnpriced ? 'requests' : 'cost'}&group=${group}`, POLL_MS, refreshKey)
+  const bySession = group === 'session'
+  const title = `${allUnpriced ? 'Busiest' : 'Costliest'} ${bySession ? 'sessions' : 'developers'}`
   return <section className="section" aria-labelledby="sessions-title">
-    <div className="section-head"><div><h2 id="sessions-title">{allUnpriced ? 'Busiest sessions' : 'Costliest sessions'}</h2><p>{privacy ? 'Names are hidden. Turn off Hide names to see them.' : 'Showing original session and developer names.'}</p></div></div>
-    <ResourceState resource={sessions} empty={sessions.data?.length === 0} emptyText="No sessions in this range.">
+    <div className="section-head"><div><h2 id="sessions-title">{title}</h2><p>{privacy ? 'Names are hidden. Turn off Hide names to see them.' : 'Showing original session and developer names.'}</p></div>
+      <div className="segmented" role="group" aria-label="Group by"><button aria-pressed={bySession} onClick={() => setGroup('session')}>Session</button><button aria-pressed={!bySession} onClick={() => setGroup('developer')}>Developer</button></div>
+    </div>
+    <ResourceState resource={sessions} empty={sessions.data?.length === 0} emptyText="Nothing in this range.">
       <div className="table-wrap"><table>
-        <thead><tr><th>Session</th><th>Developer</th><th>Started</th><th className="num">Requests</th><th className="num">Cost</th></tr></thead>
-        <tbody>{sessions.data?.map(s => <tr key={`${s.sessionId}:${s.developer}`}>
-          <td>{alias(s.sessionId, 'Session', privacy)}</td><td>{alias(s.developer, 'Developer', privacy)}</td>
-          <td>{new Date(s.startedAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}</td><td className="num">{number(s.requests)}</td>
+        <thead><tr>{bySession && <th>Session</th>}<th>Developer</th>{bySession ? <th>Started</th> : <><th className="num">Sessions</th><th>Last active</th></>}<th className="num">Requests</th><th className="num">Cost</th></tr></thead>
+        <tbody>{sessions.data?.map(s => <tr key={bySession ? s.sessionId : s.developer}>
+          {bySession && <td>{alias(s.sessionId ?? '', 'Session', privacy)}</td>}<td>{alias(s.developer, 'Developer', privacy)}</td>
+          {bySession
+            ? <td>{new Date(s.startedAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}</td>
+            : <><td className="num">{number(s.sessions ?? 0)}</td><td>{new Date(s.endedAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}</td></>}
+          <td className="num">{number(s.requests)}</td>
           <td className="num">{costText(s, allUnpriced)}{!allUnpriced && (s.unpricedRequests ?? 0) > 0 && s.pricedRequests !== 0 && <span className="sub">partly unpriced</span>}</td>
         </tr>)}</tbody>
       </table></div>
@@ -232,9 +240,24 @@ function CopyBlock({ label, code }: { label: string; code: string }) {
   </div>
 }
 
+type Surface = 'cli' | 'desktop'
+const SURFACES: { key: Surface; title: string }[] = [
+  { key: 'cli', title: 'CLI' },
+  { key: 'desktop', title: 'Desktop app' },
+]
+
 export function Setup({ onView }: { onView: () => void }) {
+  const [surface, setSurface] = useState<Surface>('cli')
+  const moveTab = (event: KeyboardEvent<HTMLButtonElement>) => {
+    const step = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0
+    if (!step) return
+    event.preventDefault()
+    const next = SURFACES[(SURFACES.findIndex(item => item.key === surface) + step + SURFACES.length) % SURFACES.length].key
+    setSurface(next)
+    document.getElementById(`surface-tab-${next}`)?.focus()
+  }
   const origin = import.meta.env.DEV ? 'http://localhost:3000' : window.location.origin
-  const configuration = JSON.stringify({ env: {
+  const env = {
     CLAUDE_CODE_ENABLE_TELEMETRY: '1',
     OTEL_LOGS_EXPORTER: 'otlp',
     OTEL_METRICS_EXPORTER: 'none',
@@ -247,13 +270,23 @@ export function Setup({ onView }: { onView: () => void }) {
     OTEL_EXPORTER_OTLP_LOGS_PROTOCOL: 'http/json',
     OTEL_EXPORTER_OTLP_LOGS_ENDPOINT: `${origin}/v1/logs`,
     OTEL_EXPORTER_OTLP_LOGS_HEADERS: 'Authorization=Bearer <your access password>',
-    OTEL_RESOURCE_ATTRIBUTES: 'developer=<your name>',
-  } }, null, 2)
+    OTEL_LOGS_EXPORT_INTERVAL: '2000',
+    OTEL_RESOURCE_ATTRIBUTES: 'developer=<your name>-<surface>',
+  }
+  const configuration = JSON.stringify({ env }, null, 2)
   return <>
     <div className="page-head"><div><h1>Connect Claude Code</h1><p>Send request events from Claude Code to this dashboard. Only usage metadata is stored: model, token counts, session and cost. Prompts, responses and tool contents are never sent.</p></div></div>
     <ol className="steps">
-      <li className="step"><span className="step-n" aria-hidden="true">1</span><div className="step-body"><h2>Save your settings file</h2><p>Save this as <code>claude-telemetry.json</code> and replace the two placeholders. Keep the file private, because it contains your access password.</p><CopyBlock label="claude-telemetry.json" code={configuration} /></div></li>
-      <li className="step"><span className="step-n" aria-hidden="true">2</span><div className="step-body"><h2>Start a new session with it</h2><p>Settings are read when a session starts, so sessions that are already open won't report.</p><CopyBlock label="Terminal" code="claude --settings ./claude-telemetry.json" /></div></li>
+      <li className="step"><span className="step-n" aria-hidden="true">1</span><div className="step-body"><h2>Copy your settings</h2><p>Replace the two placeholders. Use a different <code>developer</code> value per surface, such as <code>jesse-cli</code>, to see usage split by surface. The desktop app is labelled for you. The file holds your access password, so keep it private.</p><CopyBlock label="settings.json" code={configuration} /></div></li>
+      <li className="step"><span className="step-n" aria-hidden="true">2</span><div className="step-body"><h2>Add it once where you run Claude Code</h2><p>Settings are read when a session starts. Set them once and every later session reports. Sessions that are already open won't.</p>
+        <div className="segmented" role="tablist" aria-label="Where you run Claude Code">
+          {SURFACES.map(item => <button key={item.key} id={`surface-tab-${item.key}`} role="tab" aria-selected={surface === item.key} aria-controls="surface-panel" tabIndex={surface === item.key ? 0 : -1} onClick={() => setSurface(item.key)} onKeyDown={moveTab}>{item.title}</button>)}
+        </div>
+        <div className="surface" id="surface-panel" role="tabpanel" aria-labelledby={`surface-tab-${surface}`}>
+          {surface === 'cli' && <p>Merge the <code>env</code> block into <code>~/.claude/settings.json</code>, keeping any keys already there. Every project and every new session then reports.</p>}
+          {surface === 'desktop' && <p>The Code tab uses the user settings of the machine it runs on. On Windows that is <code>%USERPROFILE%\.claude\settings.json</code>, a different file from the one in WSL. The regular chat does not report. The desktop app ignores the <code>developer</code> value, so it is labelled <code>&lt;default developer&gt;-desktop</code> automatically.</p>}
+        </div>
+        <p>Cloud sessions are not supported. They did not send telemetry in testing. To try a file first, run <code>claude --settings ./claude-telemetry.json</code>.</p></div></li>
       <li className="step"><span className="step-n" aria-hidden="true">3</span><div className="step-body"><h2>Send a request, then check the dashboard</h2><p>Events arrive after the exporter flushes, usually within a few seconds. The dashboard refreshes about every 30 seconds while you are looking at it.</p><div><button className="button primary" onClick={onView}>Open dashboard <Icon name="arrow" size={16} /></button></div></div></li>
     </ol>
     <p className="fine">Agent, skill and MCP names appear only when Claude Code emits them. Costs use Claude API prices and are estimates.</p>

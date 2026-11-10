@@ -28,6 +28,16 @@ test('maps an api_request event', () => {
   assert.equal(rows[0]?.eventKey?.length, 64)
 })
 
+test('labels desktop events without a developer after the default developer', () => {
+  const timeUnixNano = String(BigInt(Date.now() - 1000) * 1_000_000n)
+  const body = (resource: ReturnType<typeof attr>[]) => ({ resourceLogs: [{ resource: { attributes: resource }, scopeLogs: [{ logRecords: [{ timeUnixNano, attributes: [attr('event.name', { stringValue: 'api_request' })] }] }] }] })
+  const desktop = attr('service.name', { stringValue: 'claude-code-desktop' })
+
+  assert.equal(mapApiRequests(body([desktop]), 'jesse')[0]?.developer, 'jesse-desktop')
+  assert.equal(mapApiRequests(body([desktop, attr('developer', { stringValue: 'sam' })]), 'jesse')[0]?.developer, 'sam')
+  assert.equal(mapApiRequests(body([attr('service.name', { stringValue: 'claude-code' })]), 'jesse')[0]?.developer, 'jesse')
+})
+
 test('ignores other events and marks missing cost unpriced', () => {
   const other = mapApiRequests(payload([attr('event.name', { stringValue: 'tool_result' })]), 'me')
   assert.equal(other.length, 0)

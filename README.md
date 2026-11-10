@@ -65,7 +65,9 @@ If `TOKENSCOPE_API_TOKEN` is empty and `NODE_ENV` is not `production`, the API s
 
 ## Connect Claude Code
 
-Save this as `claude-telemetry.json`, replace the two placeholders, and keep the file private because it contains your password:
+Claude Code reads these settings when a session starts. Set them once in the place that fits each way you run it, and every later session reports without a flag. Sessions that are already open will not report.
+
+Replace the three placeholders. The token is your `TOKENSCOPE_API_TOKEN`, so keep the file private.
 
 ```json
 {
@@ -80,22 +82,33 @@ Save this as `claude-telemetry.json`, replace the two placeholders, and keep the
     "OTEL_LOG_TOOL_CONTENT": "0",
     "OTEL_LOG_RAW_API_BODIES": "0",
     "OTEL_EXPORTER_OTLP_LOGS_PROTOCOL": "http/json",
-    "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT": "http://localhost:3000/v1/logs",
+    "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT": "https://<your-domain>/v1/logs",
     "OTEL_EXPORTER_OTLP_LOGS_HEADERS": "Authorization=Bearer <your TOKENSCOPE_API_TOKEN>",
-    "OTEL_RESOURCE_ATTRIBUTES": "developer=<your name>"
+    "OTEL_LOGS_EXPORT_INTERVAL": "2000",
+    "OTEL_RESOURCE_ATTRIBUTES": "developer=<your name>-<surface>"
   }
 }
 ```
 
-Start a new session with it, then send a request:
+Use a different `developer` value per surface where the surface honors it, such as `jesse-cli`, and the dashboard's developer breakdown shows usage by surface.
 
-```sh
-claude --settings ./claude-telemetry.json
-```
+### CLI
 
-For a deployed instance, set the endpoint to `https://<your-domain>/v1/logs`. Settings are read when a session starts, so sessions that are already open will not report.
+Merge the `env` block into your user settings file, `~/.claude/settings.json`, keeping any keys already there. This applies to every project and every session.
 
-When Claude Code runs in WSL and the API runs on Windows, `localhost` does not reach it. Use the Windows host address instead.
+### Desktop app
+
+The Code tab runs Claude Code on the machine where the app runs and uses that machine's user settings. On Windows that is `%USERPROFILE%\.claude\settings.json`, which is a different file from the one in WSL. The regular chat in the desktop app does not export Claude Code telemetry. The desktop app ignores `OTEL_RESOURCE_ATTRIBUTES`, so it sends no `developer`. TokenScope labels those events `<TOKENSCOPE_DEFAULT_DEVELOPER>-desktop`, for example `jesse-desktop` when the default developer is `jesse`.
+
+### Cloud sessions
+
+Not supported. In testing, Claude Code cloud sessions did not send telemetry to TokenScope, even with the endpoint set in the cloud environment's settings file and the token injected through a network secret. A plain `curl` from the same sandbox reached the API, so the network path is fine. The cloud exporter simply sent nothing.
+
+### Local API
+
+For a local API, use `http://localhost:3000/v1/logs` as the endpoint. When Claude Code runs in WSL and the API runs on Windows, `localhost` does not reach it. Use the Windows host address instead.
+
+To try a configuration without changing user settings, save the JSON as `claude-telemetry.json` and start a session with `claude --settings ./claude-telemetry.json`.
 
 ## Deploy to Vercel
 
