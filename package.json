@@ -1,8 +1,8 @@
 {
   "name": "token-scope-node",
   "version": "1.0.0",
-  "description": "TokenScope Fastify API for Vercel and Neon",
-  "main": "app.ts",
+  "description": "Track Claude Code requests, tokens and estimated cost. Fastify API for Vercel and Neon with a React dashboard.",
+  "main": "dist/app.js",
   "directories": {
     "test": "test"
   },
@@ -16,8 +16,17 @@
     "migrate": "node --env-file-if-exists=.env -r ts-node/register scripts/migrate.ts",
     "web:dev": "npm --prefix web run dev"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "claude-code",
+    "telemetry",
+    "opentelemetry",
+    "otlp",
+    "token-usage",
+    "fastify",
+    "neon",
+    "vercel"
+  ],
+  "author": "Jesse Nicodemus",
   "license": "MIT",
   "dependencies": {
     "@fastify/autoload": "^6.0.0",
@@ -34,5 +43,16 @@
     "fastify-tsconfig": "^3.0.0",
     "ts-node": "^10.4.0",
     "typescript": "~5.9.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jessetechgeek/token-scope.git"
+  },
+  "homepage": "https://github.com/jessetechgeek/token-scope#readme",
+  "bugs": {
+    "url": "https://github.com/jessetechgeek/token-scope/issues"
+  },
+  "engines": {
+    "node": ">=22"
   }
 }
