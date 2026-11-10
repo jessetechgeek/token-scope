@@ -129,7 +129,7 @@ Neon scales idle compute to zero. The dashboard refreshes about every 30 seconds
 | `GET /api/session`, `POST /api/login`, `POST /api/logout` | Open | Sign-in |
 | `GET /health` | Open | Database check |
 
-Query parameters are `range` (`1h`, `24h`, `7d`, `30d`, `90d`) and, for breakdown, `by` (`model`, `agent`, `skill`, `mcp`, `developer`, `query`).
+Query parameters are `range` (`1h`, `24h`, `7d`, `30d`, `90d`), `metric` (`cost` or `requests`, for breakdown and sessions) and, for breakdown, `by` (`model`, `agent`, `skill`, `mcp`, `developer`, `query`). Sessions take `group=developer` to roll sessions up by developer.
 
 ## Project layout
 
@@ -149,7 +149,9 @@ test/          unit tests
 npm test
 ```
 
-The unit tests cover the OTLP mapper and the time-bucket helpers. The SQL paths have been checked against a real Neon database by hand, but there are no automated database tests yet.
+The tests run without a database. They cover the OTLP mapper, time buckets, session signing, ingest dedupe and batching, range selection, and the auth and ingest routes over HTTP against a stubbed SQL client. CI runs them and the web build on every push and pull request.
+
+The SQL itself and the read routes have been checked against a real Neon database by hand, but there are no automated database tests yet.
 
 ## Limits
 
